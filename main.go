@@ -35,9 +35,7 @@ func main() {
 		}
 	}
 
-	
 	MONGODB_URI := os.Getenv("MONGODB_URI")
-	fmt.Println(MONGODB_URI)
 	clientOption := options.Client().ApplyURI(MONGODB_URI)
 	client, err := mongo.Connect(context.Background(), clientOption)
 	if err != nil {
