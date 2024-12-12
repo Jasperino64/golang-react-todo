@@ -25,6 +25,7 @@ var collection *mongo.Collection
 
 func main() {
 	fmt.Println("Hello world")
+
 	if os.Getenv("ENV") != "production" {
 		// Load .env file if not in production
 		err := godotenv.Load()
@@ -36,6 +37,7 @@ func main() {
 
 	
 	MONGODB_URI := os.Getenv("MONGODB_URI")
+	fmt.Println(MONGODB_URI)
 	clientOption := options.Client().ApplyURI(MONGODB_URI)
 	client, err := mongo.Connect(context.Background(), clientOption)
 	if err != nil {
