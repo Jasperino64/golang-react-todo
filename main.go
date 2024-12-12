@@ -74,8 +74,8 @@ func main() {
 		group.DELETE("/todos/:id", deleteTodo)
 	}
 
-	router.Use(static.Serve("/", static.EmbedFolder(server, "client/dist")))
-	router.StaticFS("/assets", http.Dir("./client/dist/assets"))
+	router.Use(static.Serve("/", static.LocalFile("./client/dist", false)))
+	// router.StaticFS("/assets", http.Dir("./client/dist/assets"))
 
 	router.NoRoute(func(c *gin.Context) {
 		if os.Getenv("ENV") == "production" {
