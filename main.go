@@ -58,6 +58,7 @@ func main() {
 	app := fiber.New()
 	
 	if os.Getenv("ENV") == "production" {
+		fmt.Println("Running in production mode")
 		app.Static("/", "./client/dist")
 		app.Use(func(c *fiber.Ctx) error {
 			if err := c.SendFile("./client/dist/index.html"); err != nil {
