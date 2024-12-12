@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,11 +76,19 @@ func main() {
 
 	if os.Getenv("ENV") == "production" {
 		fmt.Println("Running in production mode")
-		router.Use(static.Serve("/", static.LocalFile("./client/dist", false)))
 		// Check if index.html exists
 		if _, err := os.Stat(filepath.Join("./client/dist", "index.html")); os.IsNotExist(err) {
 			log.Fatal("index.html not found in ./client/dist")
 		}
+
+		// Serve static files using http package
+		router.Use(func(c *gin.Context) {
+			if c.Request.URL.Path == "/" {
+				http.ServeFile(c.Writer, c.Request, "./client/dist/index.html")
+			} else {
+				http.StripPrefix("/", http.FileServer(http.Dir("./client/dist"))).ServeHTTP(c.Writer, c.Request)
+			}
+		})
 	}
 
 	router.NoRoute(func(c *gin.Context) {
