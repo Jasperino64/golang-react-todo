@@ -75,6 +75,14 @@ func main() {
 		r.StaticFS("/assets", http.Dir("./client/dist/assets"))
 	}
 
+	r.NoRoute(func(c *gin.Context) {
+		if os.Getenv("ENV") == "production" {
+			c.File("./client/dist/index.html")
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Not Found"})
+		}
+	})
+
 	PORT := os.Getenv("PORT")
 	if PORT == "" {
 		PORT = "80"
