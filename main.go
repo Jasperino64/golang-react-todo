@@ -59,6 +59,12 @@ func main() {
 	
 	if os.Getenv("ENV") == "production" {
 		app.Static("/", "./client/dist")
+		app.Use(func(c *fiber.Ctx) error {
+			if err := c.SendFile("./client/dist/index.html"); err != nil {
+				return c.Status(500).SendString(err.Error())
+			}
+			return nil
+		})
 	} else {
 		app.Use(cors.New(cors.Config{
 			AllowOrigins: "*",
