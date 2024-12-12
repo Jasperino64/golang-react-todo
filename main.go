@@ -69,7 +69,9 @@ func main() {
 	app.Get("/api/todos/:id", getTodo)
 	app.Patch("/api/todos/:id", updateTodo)
 	app.Delete("/api/todos/:id", deleteTodo)
-
+	if PORT == "" {
+		PORT = "5000"
+	}
 	log.Fatal(app.Listen(":" + PORT))
 }
 
