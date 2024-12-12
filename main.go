@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +24,7 @@ type Todo struct {
 }
 
 var collection *mongo.Collection
-
+var server embed.FS
 func main() {
 	fmt.Println("Hello world")
 
@@ -72,7 +74,7 @@ func main() {
 		group.DELETE("/todos/:id", deleteTodo)
 	}
 
-	router.Static("/", "./client/dist")
+	router.Use(static.Serve("/", static.EmbedFolder(server,"./client/dist")))
 	router.StaticFS("/assets", http.Dir("./client/dist/assets"))
 
 	router.NoRoute(func(c *gin.Context) {
