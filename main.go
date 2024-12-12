@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"path/filepath"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,178 +21,140 @@ type Todo struct {
 }
 
 var collection *mongo.Collection
-var server embed.FS
+
 func main() {
-	fmt.Println("Hello world")
+	fmt.Println("hello world")
 
 	if os.Getenv("ENV") != "production" {
-		// Load .env file if not in production
-		err := godotenv.Load()
+		// Load the .env file if not in production
+		err := godotenv.Load(".env")
 		if err != nil {
-			log.Fatal("Error loading .env file")
-			return
+			log.Fatal("Error loading .env file:", err)
 		}
 	}
 
 	MONGODB_URI := os.Getenv("MONGODB_URI")
-	clientOption := options.Client().ApplyURI(MONGODB_URI)
-	client, err := mongo.Connect(context.Background(), clientOption)
+	clientOptions := options.Client().ApplyURI(MONGODB_URI)
+	client, err := mongo.Connect(context.Background(), clientOptions)
+
 	if err != nil {
-		log.Fatal("Error connecting to MongoDB")
-		return
+		log.Fatal(err)
 	}
-	err = client.Ping(context.Background(), nil)
-	if err != nil {
-		log.Fatalf("Error pinging MongoDB: %v", err)
-		return
-	}
-	fmt.Println("Connected to MongoDB")
 
 	defer client.Disconnect(context.Background())
 
-	collection = client.Database("Cluster0").Collection("todos")
-
-	router := gin.Default()
-
-	if os.Getenv("ENV") != "production" {
-		router.Use(func(c *gin.Context) {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
-			c.Next()
-		})
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	group := router.Group("/api")
-	{
-		group.GET("/todos", getTodos)
-		group.POST("/todos", createTodo)
-		group.GET("/todos/:id", getTodo)
-		group.PATCH("/todos/:id", updateTodo)
-		group.DELETE("/todos/:id", deleteTodo)
+	fmt.Println("Connected to MongoDB")
+
+	collection = client.Database("golang_db").Collection("todos")
+
+	app := fiber.New()
+
+	// app.Use(cors.New(cors.Config{
+	// 	AllowOrigins: "http://localhost:5173",
+	// 	AllowHeaders: "Origin,Content-Type,Accept",
+	// }))
+
+	app.Get("/api/todos", getTodos)
+	app.Post("/api/todos", createTodo)
+	app.Patch("/api/todos/:id", updateTodo)
+	app.Delete("/api/todos/:id", deleteTodo)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "5000"
 	}
 
 	if os.Getenv("ENV") == "production" {
-		fmt.Println("Running in production mode")
-		// Check if index.html exists
-		if _, err := os.Stat(filepath.Join("./client/dist", "index.html")); os.IsNotExist(err) {
-			log.Fatal("index.html not found in ./client/dist")
-		}
-
-		// Serve static files using http package
-		router.Use(func(c *gin.Context) {
-			if c.Request.URL.Path == "/" {
-				http.ServeFile(c.Writer, c.Request, "./client/dist/index.html")
-			} else {
-				http.StripPrefix("/", http.FileServer(http.Dir("./client/dist"))).ServeHTTP(c.Writer, c.Request)
-			}
-		})
+		app.Static("/", "./client/dist")
 	}
 
-	router.NoRoute(func(c *gin.Context) {
-		if os.Getenv("ENV") == "production" {
-			c.File("./client/dist/index.html")
-		} else {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Not Found"})
-		}
-	})
+	log.Fatal(app.Listen("0.0.0.0:" + port))
 
-	PORT := os.Getenv("PORT")
-	if PORT == "" {
-		PORT = "80"
-	}
-	log.Fatal(router.Run(":" + PORT))
 }
 
-func getTodos(c *gin.Context) {
+func getTodos(c *fiber.Ctx) error {
 	var todos []Todo
 
 	cursor, err := collection.Find(context.Background(), bson.M{})
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
+		return err
 	}
+
 	defer cursor.Close(context.Background())
 
-	if err = cursor.All(context.Background(), &todos); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
+	for cursor.Next(context.Background()) {
+		var todo Todo
+		if err := cursor.Decode(&todo); err != nil {
+			return err
+		}
+		todos = append(todos, todo)
 	}
-	c.JSON(http.StatusOK, todos)
+
+	return c.JSON(todos)
 }
 
-func createTodo(c *gin.Context) {
-	var todo Todo
+func createTodo(c *fiber.Ctx) error {
+	todo := new(Todo)
+	// {id:0,completed:false,body:""}
 
-	if err := c.ShouldBindJSON(&todo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err})
-		return
+	if err := c.BodyParser(todo); err != nil {
+		return err
 	}
 
 	if todo.Body == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Todo body cannot be empty"})
-		return
+		return c.Status(400).JSON(fiber.Map{"error": "Todo body cannot be empty"})
 	}
 
-	result, err := collection.InsertOne(context.Background(), todo)
+	insertResult, err := collection.InsertOne(context.Background(), todo)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
+		return err
 	}
 
-	todo.ID = result.InsertedID.(primitive.ObjectID)
-	c.JSON(http.StatusOK, todo)
+	todo.ID = insertResult.InsertedID.(primitive.ObjectID)
+
+	return c.Status(201).JSON(todo)
 }
 
-func getTodo(c *gin.Context) {
-	id := c.Param("id")
-	var todo Todo
-	err := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&todo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
-	}
-	c.JSON(http.StatusOK, todo)
-}
-
-func updateTodo(c *gin.Context) {
-	id := c.Param("id")
+func updateTodo(c *fiber.Ctx) error {
+	id := c.Params("id")
 	objectID, err := primitive.ObjectIDFromHex(id)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
-		return
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid todo ID"})
 	}
+
 	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"completed": true}}
 
-	var todo Todo
-	err = collection.FindOne(context.Background(), filter).Decode(&todo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
-	}
-
-	update := bson.M{"$set": bson.M{"completed": !todo.Completed}}
 	_, err = collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
+		return err
 	}
-	todo.Completed = !todo.Completed
-	c.JSON(http.StatusOK, todo)
+
+	return c.Status(200).JSON(fiber.Map{"success": true})
+
 }
 
-func deleteTodo(c *gin.Context) {
-	id := c.Param("id")
+func deleteTodo(c *fiber.Ctx) error {
+	id := c.Params("id")
 	objectID, err := primitive.ObjectIDFromHex(id)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid ID"})
-		return
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid todo ID"})
 	}
 
 	filter := bson.M{"_id": objectID}
-	result, err := collection.DeleteOne(context.Background(), filter)
+	_, err = collection.DeleteOne(context.Background(), filter)
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
-		return
+		return err
 	}
-	c.JSON(http.StatusOK, gin.H{"deletedCount": result.DeletedCount})
+
+	return c.Status(200).JSON(fiber.Map{"success": true})
 }
