@@ -34,7 +34,7 @@ func main() {
 		}
 	}
 
-	PORT := os.Getenv("PORT")
+	
 	MONGODB_URI := os.Getenv("MONGODB_URI")
 	clientOption := options.Client().ApplyURI(MONGODB_URI)
 	client, err := mongo.Connect(context.Background(), clientOption)
@@ -69,10 +69,12 @@ func main() {
 	app.Get("/api/todos/:id", getTodo)
 	app.Patch("/api/todos/:id", updateTodo)
 	app.Delete("/api/todos/:id", deleteTodo)
+	
+	PORT := os.Getenv("PORT")
 	if PORT == "" {
 		PORT = "5000"
 	}
-	log.Fatal(app.Listen(":" + PORT))
+	log.Fatal(app.Listen("0.0.0.0:" + PORT))
 }
 
 func getTodos(c *fiber.Ctx) error {
