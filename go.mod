@@ -1,6 +1,6 @@
 module github.com/Jasperino64/golang-react-todo
 
-go 1.21.6
+go 1.23.0
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect

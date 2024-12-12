@@ -55,8 +55,12 @@ func main() {
 
 	collection = client.Database("Cluster0").Collection("todos")
 
-	app := fiber.New()
-	
+	app := fiber.New(fiber.Config{
+		Network:       "tcp",
+		ServerHeader:  "Fiber",
+		AppName: "Go Todo App",
+	})
+
 	if os.Getenv("ENV") == "production" {
 		fmt.Println("Running in production mode")
 		app.Static("/", "./client/dist")
