@@ -72,10 +72,7 @@ func main() {
 	if os.Getenv("ENV") == "production" {
 		fmt.Println("Running in production mode")
 		r.Static("/", "./client/dist")
-		fmt.Println("Serving static files from ./client/dist")
-		r.NoRoute(func(c *gin.Context) {
-			c.File("./client/dist/index.html")
-		})
+		r.StaticFS("/assets", http.Dir("./client/dist/assets"))
 	}
 
 	PORT := os.Getenv("PORT")
