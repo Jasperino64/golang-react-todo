@@ -53,29 +53,29 @@ func main() {
 
 	collection = client.Database("Cluster0").Collection("todos")
 
-	r := gin.Default()
+	router := gin.Default()
 
 	if os.Getenv("ENV") != "production" {
-		r.Use(func(c *gin.Context) {
+		router.Use(func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
 			c.Next()
 		})
 	}
 
-	r.GET("/api/todos", getTodos)
-	r.POST("/api/todos", createTodo)
-	r.GET("/api/todos/:id", getTodo)
-	r.PATCH("/api/todos/:id", updateTodo)
-	r.DELETE("/api/todos/:id", deleteTodo)
-
-	if os.Getenv("ENV") == "production" {
-		fmt.Println("Running in production mode")
-		r.Static("/", "./client/dist")
-		r.StaticFS("/assets", http.Dir("./client/dist/assets"))
+	group := router.Group("/api")
+	{
+		group.GET("/todos", getTodos)
+		group.POST("/todos", createTodo)
+		group.GET("/todos/:id", getTodo)
+		group.PATCH("/todos/:id", updateTodo)
+		group.DELETE("/todos/:id", deleteTodo)
 	}
 
-	r.NoRoute(func(c *gin.Context) {
+	router.Static("/", "./client/dist")
+	router.StaticFS("/assets", http.Dir("./client/dist/assets"))
+
+	router.NoRoute(func(c *gin.Context) {
 		if os.Getenv("ENV") == "production" {
 			c.File("./client/dist/index.html")
 		} else {
@@ -87,7 +87,7 @@ func main() {
 	if PORT == "" {
 		PORT = "80"
 	}
-	log.Fatal(r.Run(":" + PORT))
+	log.Fatal(router.Run(":" + PORT))
 }
 
 func getTodos(c *gin.Context) {
