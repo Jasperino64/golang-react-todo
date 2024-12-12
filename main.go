@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -74,8 +75,14 @@ func main() {
 		group.DELETE("/todos/:id", deleteTodo)
 	}
 
-	router.Use(static.Serve("/", static.LocalFile("./client/dist", false)))
-	// router.StaticFS("/assets", http.Dir("./client/dist/assets"))
+	if os.Getenv("ENV") == "production" {
+		fmt.Println("Running in production mode")
+		router.Use(static.Serve("/", static.LocalFile("./client/dist", false)))
+		// Check if index.html exists
+		if _, err := os.Stat(filepath.Join("./client/dist", "index.html")); os.IsNotExist(err) {
+			log.Fatal("index.html not found in ./client/dist")
+		}
+	}
 
 	router.NoRoute(func(c *gin.Context) {
 		if os.Getenv("ENV") == "production" {
