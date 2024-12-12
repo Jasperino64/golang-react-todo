@@ -55,14 +55,7 @@ func main() {
 
 	r := gin.Default()
 
-	if os.Getenv("ENV") == "production" {
-		fmt.Println("Running in production mode")
-		r.Static("/", "./client/dist")
-		fmt.Println("Serving static files from ./client/dist")
-		r.NoRoute(func(c *gin.Context) {
-			c.File("./client/dist/index.html")
-		})
-	} else {
+	if os.Getenv("ENV") != "production" {
 		r.Use(func(c *gin.Context) {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 			c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
@@ -75,6 +68,15 @@ func main() {
 	r.GET("/api/todos/:id", getTodo)
 	r.PATCH("/api/todos/:id", updateTodo)
 	r.DELETE("/api/todos/:id", deleteTodo)
+
+	if os.Getenv("ENV") == "production" {
+		fmt.Println("Running in production mode")
+		r.Static("/", "./client/dist")
+		fmt.Println("Serving static files from ./client/dist")
+		r.NoRoute(func(c *gin.Context) {
+			c.File("./client/dist/index.html")
+		})
+	}
 
 	PORT := os.Getenv("PORT")
 	if PORT == "" {
