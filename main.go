@@ -46,7 +46,7 @@ func main() {
 	}
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
-		log.Fatal("Error pinging MongoDB")
+		log.Fatalf("Error pinging MongoDB: %v", err)
 		return
 	}
 	fmt.Println("Connected to MongoDB")
