@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
@@ -37,7 +38,6 @@ func main() {
 
 	
 	MONGODB_URI := os.Getenv("MONGODB_URI")
-	fmt.Println(MONGODB_URI)
 	clientOption := options.Client().ApplyURI(MONGODB_URI)
 	client, err := mongo.Connect(context.Background(), clientOption)
 	if err != nil {
@@ -80,11 +80,8 @@ func main() {
 	app.Patch("/api/todos/:id", updateTodo)
 	app.Delete("/api/todos/:id", deleteTodo)
 	
-	PORT := os.Getenv("PORT")
-	if PORT == "" {
-		PORT = "5000"
-	}
-	log.Fatal(app.Listen("0.0.0.0:" + PORT))
+	PORT := cmp.Or(os.Getenv("PORT"), "80")
+	log.Fatal(app.Listen(":" + PORT))
 }
 
 func getTodos(c *fiber.Ctx) error {
