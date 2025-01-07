@@ -8,7 +8,7 @@ import { CiUndo } from "react-icons/ci"
 
 const TodoItem = ({ todo }: { todo: Todo }) => {
   const queryClient = useQueryClient()
-  const { mutate: updateTdo, isPending: isUpdating } = useMutation({
+  const { mutate: updateTodo, isPending: isUpdating } = useMutation({
     mutationKey: ["updateTodo"],
     mutationFn: async () => {
       //   if (todo.completed) {
@@ -77,7 +77,11 @@ const TodoItem = ({ todo }: { todo: Todo }) => {
         )}
       </Flex>
       <Flex gap={2} alignItems={"center"}>
-        <Box color={"green.500"} cursor={"pointer"} onClick={() => updateTdo()}>
+        <Box
+          color={"green.500"}
+          cursor={"pointer"}
+          onClick={() => updateTodo()}
+        >
           {!isUpdating && !todo.completed && <FaCheckCircle size={20} />}
           {!isUpdating && todo.completed && <CiUndo size={20} />}
           {isUpdating && <Spinner size={"sm"} />}
