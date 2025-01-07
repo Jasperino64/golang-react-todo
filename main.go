@@ -74,11 +74,7 @@ func main() {
 		port = "5000"
 	}
 
-	 
-
-
 	log.Fatal(app.Listen("0.0.0.0:" + port))
-
 }
 
 func getTodos(c *fiber.Ctx) error {
@@ -134,7 +130,7 @@ func updateTodo(c *fiber.Ctx) error {
 	}
 
 	filter := bson.M{"_id": objectID}
-	
+
 	// invert the completed status
 	var todo Todo
 	collection.FindOne(context.Background(), filter).Decode(&todo)
