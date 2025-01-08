@@ -54,7 +54,7 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://react-todo-client-production.up.railway.app",
+		AllowOrigins:     "https://golang-todo-client-production.up.railway.app",
 		AllowHeaders:     "Origin,Content-Type,Accept",
 		AllowCredentials: true,
 		AllowMethods:     "GET,POST,PATCH,DELETE",
