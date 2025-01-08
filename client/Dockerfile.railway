@@ -15,7 +15,7 @@ RUN npm install
 COPY . .
 
 RUN npm run build
-
+RUN ENV=production
 # Use separate stage for deployable image
 FROM nginxinc/nginx-unprivileged:1.23-alpine-perl
 
