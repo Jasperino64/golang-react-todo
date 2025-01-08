@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "/client/Dockerfile.railway"
+
+[deploy]
+healthcheckPath = "/ping"
+restartPolicyMaxRetries = 2
+restartPolicyType = "ON_FAILURE"
