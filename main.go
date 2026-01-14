@@ -9,16 +9,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type Todo struct {
-	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Completed bool               `json:"completed"`
-	Body      string             `json:"body"`
+	ID        bson.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Completed bool          `json:"completed"`
+	Body      string        `json:"body"`
 }
 
 var collection *mongo.Collection
@@ -33,16 +33,22 @@ func main() {
 	}
 
 	MONGODB_URI := os.Getenv("MONGODB_URI")
-	clientOptions := options.Client().ApplyURI(MONGODB_URI)
-	client, err := mongo.Connect(context.Background(), clientOptions)
+	fmt.Println("MONGODB_URI:", MONGODB_URI)
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	clientOptions := options.Client().ApplyURI(MONGODB_URI).SetServerAPIOptions(serverAPI)
+	client, err := mongo.Connect(clientOptions)
 
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	defer client.Disconnect(context.Background())
+	defer func() {
+		if err := client.Disconnect(context.Background()); err != nil {
+			panic(err)
+		}
+	}()
 
-	err = client.Ping(context.Background(), nil)
+	err = client.Ping(context.TODO(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,12 +59,17 @@ func main() {
 
 	app := fiber.New()
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://golang-todo-client-production.up.railway.app",
-		AllowHeaders:     "Origin,Content-Type,Accept",
-		AllowCredentials: true,
-		AllowMethods:     "GET,POST,PATCH,DELETE",
-	}))
+	if os.Getenv("ENV") != "production" {
+		fmt.Println("Development CORS settings applied")
+		app.Use(cors.New())
+	} else {
+		app.Use(cors.New(cors.Config{
+			AllowOrigins:     "https://golang-todo-client-production.up.railway.app",
+			AllowHeaders:     "Origin,Content-Type,Accept",
+			AllowCredentials: true,
+			AllowMethods:     "GET,POST,PATCH,DELETE",
+		}))
+	}
 
 	if os.Getenv("ENV") == "production" {
 		app.Static("/", "./client/dist")
@@ -120,14 +131,14 @@ func createTodo(c *fiber.Ctx) error {
 		return err
 	}
 
-	todo.ID = insertResult.InsertedID.(primitive.ObjectID)
+	todo.ID = insertResult.InsertedID.(bson.ObjectID)
 
 	return c.Status(201).JSON(todo)
 }
 
 func updateTodo(c *fiber.Ctx) error {
 	id := c.Params("id")
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid todo ID"})
@@ -139,7 +150,7 @@ func updateTodo(c *fiber.Ctx) error {
 	var todo Todo
 	collection.FindOne(context.Background(), filter).Decode(&todo)
 	log.Println(todo)
-	
+
 	todo.Completed = !todo.Completed
 
 	log.Println(todo)
@@ -156,7 +167,7 @@ func updateTodo(c *fiber.Ctx) error {
 
 func deleteTodo(c *fiber.Ctx) error {
 	id := c.Params("id")
-	objectID, err := primitive.ObjectIDFromHex(id)
+	objectID, err := bson.ObjectIDFromHex(id)
 
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid todo ID"})
