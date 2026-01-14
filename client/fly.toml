@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for golang-react-todo-sjczqq on 2026-01-14T15:56:24Z
+# fly.toml app configuration file generated for golang-react-todo-client on 2026-01-14T14:48:36-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'golang-react-todo-sjczqq'
+app = 'golang-react-todo-client'
 primary_region = 'ewr'
 
 [build]

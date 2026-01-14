@@ -75,6 +75,9 @@ func main() {
 		app.Static("/", "./client/dist")
 	}
 
+	app.Get("/api/health", func(ctx *fiber.Ctx) error {
+		return ctx.SendString("API is healthy")
+	})
 	app.Get("/todos", getTodos)
 	app.Post("/todos", createTodo)
 	app.Patch("/todos/:id", updateTodo)
