@@ -1,13 +1,20 @@
-FROM golang:1.23
+FROM golang:1.22-alpine AS builder
 
-RUN mkdir /app
-ADD . /app
 WORKDIR /app
 
+COPY go.mod go.sum ./
 RUN go mod download
-RUN ENV=production
-RUN CGO_ENABLED=0 GOOS=linux go build -o /myapp .
-CMD ["/myapp"]
 
-EXPOSE 5000
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server
+
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/server .
+
 EXPOSE 8080
+
+CMD ["./server"]
